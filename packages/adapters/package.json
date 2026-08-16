@@ -1,0 +1,31 @@
+{
+  "name": "@git-butler/adapters",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent compatibility layer and tool format adapters for Claude, OpenAI, OpenCode, and Hermes",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@git-butler/core": "workspace:*",
+    "@git-butler/mcp": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

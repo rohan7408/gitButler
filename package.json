@@ -1,0 +1,20 @@
+{
+  "name": "git-butler-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent-agnostic Git workflow plugin and MCP server for AI coding agents",
+  "scripts": {
+    "build": "pnpm -r --filter=!tests run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm -r run typecheck",
+    "clean": "pnpm -r run clean"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

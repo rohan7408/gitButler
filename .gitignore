@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.turbo/
+*.log
+coverage/
+.ai-git/
+.DS_Store
+Thumbs.db

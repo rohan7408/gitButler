@@ -1,0 +1,54 @@
+{
+  "name": "@git-butler/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent-agnostic Git workflow plugin and MCP server for AI coding agents",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "git-butler": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "git",
+    "ai-agents",
+    "worktrees",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "codex",
+    "opencode",
+    "hermes",
+    "checkpoints",
+    "verification"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/bin.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@git-butler/checkpoints": "workspace:*",
+    "@git-butler/core": "workspace:*",
+    "@git-butler/git": "workspace:*",
+    "@git-butler/github": "workspace:*",
+    "@git-butler/mcp": "workspace:*",
+    "@git-butler/tasks": "workspace:*",
+    "@git-butler/verification": "workspace:*",
+    "@git-butler/worktrees": "workspace:*",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
