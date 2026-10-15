@@ -12,6 +12,7 @@ export default defineConfig({
       js: '.js',
     };
   },
+  noExternal: [/^@git-butler\//],
   banner: {
     js: ``,
   },

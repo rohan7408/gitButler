@@ -34,6 +34,16 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "commander": "^12.1.0",
+    "cross-spawn": "^7.0.6",
+    "nanoid": "^5.0.9",
+    "picocolors": "^1.1.1",
+    "pino": "^9.5.0",
+    "semver": "^7.6.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
     "@git-butler/checkpoints": "workspace:*",
     "@git-butler/core": "workspace:*",
     "@git-butler/git": "workspace:*",
@@ -42,10 +52,6 @@
     "@git-butler/tasks": "workspace:*",
     "@git-butler/verification": "workspace:*",
     "@git-butler/worktrees": "workspace:*",
-    "commander": "^12.1.0",
-    "picocolors": "^1.1.1"
-  },
-  "devDependencies": {
     "rimraf": "^6.0.1",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
