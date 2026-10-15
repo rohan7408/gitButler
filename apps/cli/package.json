@@ -1,6 +1,6 @@
 {
   "name": "@rohan7/git-butler",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Agent-agnostic Git workflow plugin and MCP server for AI coding agents",
   "main": "./dist/index.js",
