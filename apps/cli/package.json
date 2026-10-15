@@ -27,6 +27,14 @@
     "verification"
   ],
   "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rohan7408/gitButler.git"
+  },
+  "homepage": "https://github.com/rohan7408/gitButler#readme",
+  "bugs": {
+    "url": "https://github.com/rohan7408/gitButler/issues"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/bin.ts",

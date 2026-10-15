@@ -1,140 +1,99 @@
-<div align="center">
+# Git Butler
 
-# 🎩 Git Butler
-### *The Autonomous Git Workflow Engine & MCP Server for AI Coding Agents*
+**Deterministic Git automation, isolated worktrees, and Model Context Protocol (MCP) server for AI coding agents.**
 
-[![npm version](https://img.shields.io/npm/v/@rohan7/git-butler.svg?style=flat-square)](https://www.npmjs.com/package/@rohan7/git-butler)
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary%20%2F%20Non--Commercial-red.svg?style=flat-square)](LICENSE)
-[![MCP Compatible](https://img.shields.io/badge/MCP-21%20Tools%20Supported-purple.svg?style=flat-square)](https://modelcontextprotocol.io)
-[![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%20100%25-3178c6.svg?style=flat-square)](https://www.typescriptlang.org)
-[![Tests Passing](https://img.shields.io/badge/Tests-81%2F81%20Passing-brightgreen.svg?style=flat-square)](https://vitest.dev)
-
-<br />
-
-**AI Agent = Brain. Git Butler = Hands.**  
-*You manage the work. Git Butler manages the Git.*
-
-<br />
-
-[Features](#-key-features) •
-[Quickstart](#-quickstart) •
-[MCP Setup](#-model-context-protocol-mcp-setup) •
-[CLI Reference](#-cli-command-reference) •
-[Architecture](#-core-architecture) •
-[Documentation](#-documentation)
+[![npm version](https://img.shields.io/npm/v/@rohan7/git-butler.svg?style=flat-square&color=black&logo=npm)](https://www.npmjs.com/package/@rohan7/git-butler)
+[![License](https://img.shields.io/badge/license-Proprietary%20%2F%20Non--Commercial-blue.svg?style=flat-square)](LICENSE)
+[![MCP Tools](https://img.shields.io/badge/MCP-21%20Tools-purple.svg?style=flat-square)](https://modelcontextprotocol.io)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6.svg?style=flat-square)](https://www.typescriptlang.org)
+[![Tests](https://img.shields.io/badge/tests-81%20passed-brightgreen.svg?style=flat-square)](https://vitest.dev)
 
 ---
 
-</div>
+## Overview
 
-## 💡 The Problem Git Butler Solves
+When autonomous AI coding agents (Claude, Cursor, Antigravity, Windsurf, OpenCode) execute raw terminal Git commands directly, standard workflows break down:
 
-When AI coding assistants (Cursor, Claude, Antigravity, OpenCode) execute raw terminal Git commands directly, severe failures frequently happen:
+- **Index contention:** Concurrent subagents collide on `.git/index.lock`.
+- **Workspace pollution:** Uncommitted user files get overwritten during agent checkouts.
+- **Broken dependencies:** Newly allocated worktrees lack `node_modules` and local environment files, causing compilers, linters, and language servers to fail.
+- **Unverified merges:** Agents declare tasks complete without running real build or test commands.
+- **Accidental main commits:** Incomplete or broken changes get committed directly to protected branches.
 
-| Without Git Butler ❌ | With Git Butler 🎩 ✅ |
-| :--- | :--- |
-| **Index Contention:** Parallel subagents crash with `.git/index.lock` collisions. | **Physical Worktree Isolation:** Every task and subagent gets a dedicated, isolated worktree. Concurrent agents work simultaneously. |
-| **Accidental Overwrites:** Uncommitted user files are destroyed by agent checkouts. | **Dirty Worktree Protection:** Operations block with `WORKTREE_DIRTY` unless explicit force is granted. |
-| **Missing Dependencies:** Subagents in new worktrees break because `node_modules` and `.env` are missing. | **Auto-Dependency Linking:** Instant NTFS junction/symlink of `node_modules` and `.env` copying into every worktree. |
-| **Hallucinated Status:** Agents falsely claim "all tests pass" without running them. | **Independent Quality Gate:** Process execution validates real test, build, and lint outputs before admitting completion. |
-| **Broken Main Branch:** Agents commit half-baked code directly to `main`. | **Protected Branch Defense:** 4-tier security matrix defends `main`, `master`, and `production`. |
-| **Risky Refactors:** Complex changes break everything with no easy rollback. | **Instant Checkpoints:** Lightweight snapshot commits allow 1-second instant rollback. |
+**Git Butler** acts as a deterministic control plane between AI coding agents and native Git. It exposes 21 typed MCP tools over STDIO, automatically allocates isolated physical worktrees with zero-copy dependency junctioning, creates instant rollback checkpoints, enforces branch security boundaries, and automates merges upon verification.
 
 ---
 
-## ⚡ Key Features
+## Core Capabilities
 
-- 🌳 **Disposable Isolated Worktrees:** Automatic feature branches and physical worktree creation for every task.
-- 📦 **Automatic Dependency & Environment Linking:** Worktrees automatically link root `node_modules` (via Windows NTFS junction or Unix symlink) and copy `.env*` files so test runners and dev servers execute immediately without reinstalling.
-- 🔀 **End-to-End Task Completion & Safe Merge:** Finish tasks with a single command or MCP tool: safely merges into target branch (`main`/`master`), tears down the worktree directory, and marks the task `COMPLETED`.
-- 🚀 **Batch Task Orchestration:** Start multiple tasks in parallel with dedicated isolated worktrees and branches in one command or MCP call (`task_batch_start`).
-- 📸 **Instant Snapshot Checkpoints:** Create instant lightweight snapshot commits before risky refactors and roll back safely in milliseconds.
-- 🧪 **Independent Process Verification Gate:** Independent test runner and compilation verification prevents agents from hallucinating task completion.
-- 🔒 **4-Tier Permission Boundaries:** Fine-grained access control (`READ_ONLY`, `LOCAL_MUTATION`, `REMOTE_INTERACTION`, `DANGEROUS`).
-- 🛡️ **Zero-Hallucination Ground Truth:** All Git status, diffs, and logs are parsed from native Git porcelain outputs (`git status --porcelain=v2`, `git for-each-ref`).
-- 🐙 **Automated GitHub PR Lifecycle:** Integrated PR creation, CI check monitoring, and squash merge automation.
-- 🔌 **Universal Agent Compatibility:** Official Model Context Protocol (MCP) server over STDIO (21 typed tools), with format translators for Anthropic Claude (`input_schema`), OpenAI Codex, and raw JSON schemas.
+- **Isolated Worktree Allocation:** Every task receives an isolated physical directory and feature branch. Concurrent subagents work in parallel without lock contention.
+- **Automatic Dependency & Environment Linking:** Worktrees automatically link root `node_modules` (via NTFS junction on Windows or symlink on Unix) and copy `.env*` files so dev servers and test suites run immediately without reinstallation.
+- **Lifecycle Automation:** `task_start`, `task_batch_start`, `task_continue`, and `task_finish` handle the complete branch-worktree-merge-cleanup pipeline with dirty worktree safeguards.
+- **Instant Rollback Checkpoints:** Lightweight snapshot commits allow 1-second recovery if an agent refactor goes wrong.
+- **Independent Verification Gates:** Process execution engine runs real compiler, test runner, and linter processes, preventing agents from hallucinating task completion.
+- **Security Boundaries:** 4-tier permission policy (`READ_ONLY`, `LOCAL_MUTATION`, `REMOTE_INTERACTION`, `DANGEROUS`) blocks destructive operations and unauthorized pushes to protected branches (`main`, `master`, `production`).
+- **Porcelain Ground Truth:** All status, branch, diff, and log outputs are parsed directly from native Git porcelain outputs (`git status --porcelain=v2`, `git for-each-ref`).
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### 1. Interactive Setup Wizard (Recommended)
-Configure your AI coding environment in seconds. Git Butler interactively prompts you to choose your AI assistant(s) or IDE(s), or sets up a Universal Global Config (`~/.mcp.json`):
+
+Run the setup wizard to configure Git Butler across your AI tools:
 
 ```bash
-npx -y @rohan7/git-butler setup
+npx @rohan7/git-butler setup
 ```
 
-Or configure directly using flags:
-```bash
-# Universal Global Config (works across all projects & supported AI tools)
-npx -y @rohan7/git-butler setup --global
+The wizard prompts you to configure:
+- **Universal Global Config (`~/.mcp.json`)** — single configuration inherited across all projects and MCP clients.
+- **Cursor IDE (`.cursor/mcp.json`)**
+- **Anthropic Claude Desktop**
+- **Google Antigravity**
+- **Windsurf Editor**
 
-# Or specific IDEs:
-npx -y @rohan7/git-butler setup --cursor       # Current project (.cursor/mcp.json)
-npx -y @rohan7/git-butler setup --antigravity  # Google Antigravity
-npx -y @rohan7/git-butler setup --claude       # Anthropic Claude Desktop
-npx -y @rohan7/git-butler setup --windsurf     # Windsurf Editor
-npx -y @rohan7/git-butler setup --all          # Configure all supported environments
+You can also run non-interactive setup flags:
+
+```bash
+# Configure universal global configuration
+npx @rohan7/git-butler setup --global
+
+# Configure specific tools
+npx @rohan7/git-butler setup --cursor
+npx @rohan7/git-butler setup --claude
+npx @rohan7/git-butler setup --antigravity
+npx @rohan7/git-butler setup --windsurf
+npx @rohan7/git-butler setup --all
 ```
 
-### 2. Verify Environment Health
+### 2. Environment Diagnostics
+
+Verify repository health, Git availability, and resolve stale lock files:
+
 ```bash
-npx -y @rohan7/git-butler doctor
-# Automatically fix stale lock files and broken worktrees
-npx -y @rohan7/git-butler doctor --fix
+# Check repository diagnostic status
+npx @rohan7/git-butler doctor
+
+# Automatically repair stale index.lock files and prune dangling worktrees
+npx @rohan7/git-butler doctor --fix
 ```
 
 ### 3. Global CLI Installation (Optional)
+
 ```bash
 npm install -g @rohan7/git-butler
 ```
 
 ---
 
-## 🔌 Model Context Protocol (MCP) Setup
+## Model Context Protocol (MCP) Configuration
 
-Connect Git Butler's 21 typed MCP tools directly to your favorite IDE or AI desktop application.
+Git Butler exposes 21 typed MCP tools via STDIO.
 
-<details open>
-<summary><b>Universal Global Config (<code>~/.mcp.json</code>)</b></summary>
+### Universal Global Config (`~/.mcp.json`)
 
-Works across all projects and MCP clients automatically:
-```json
-{
-  "mcpServers": {
-    "git-butler": {
-      "command": "npx",
-      "args": ["-y", "@rohan7/git-butler", "mcp"]
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><b>Cursor IDE (<code>.cursor/mcp.json</code>)</b></summary>
-
-Add to your project's `.cursor/mcp.json` or Cursor Settings -> Features -> MCP:
-```json
-{
-  "mcpServers": {
-    "git-butler": {
-      "command": "npx",
-      "args": ["-y", "@rohan7/git-butler", "mcp"]
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><b>Claude Desktop (<code>claude_desktop_config.json</code>)</b></summary>
-
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux:** `~/.config/Claude/claude_desktop_config.json`
+Works universally across all projects and MCP-compatible editors:
 
 ```json
 {
@@ -146,174 +105,148 @@ Add to your project's `.cursor/mcp.json` or Cursor Settings -> Features -> MCP:
   }
 }
 ```
-</details>
 
-<details>
-<summary><b>Google Antigravity (<code>.agents/mcp_config.json</code> or <code>~/.gemini/config/mcp_config.json</code>)</b></summary>
+### Supported Clients
 
-```json
-{
-  "mcpServers": {
-    "git-butler": {
-      "command": "npx",
-      "args": ["-y", "@rohan7/git-butler", "mcp"]
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><b>Windsurf / OpenCode / Hermes / Local LLMs</b></summary>
-
-Start the STDIO JSON-RPC server directly:
-```bash
-npx -y @rohan7/git-butler mcp
-```
-</details>
+| Client | Configuration Path | Quick Command |
+| :--- | :--- | :--- |
+| **Universal Global** | `~/.mcp.json` | `git-butler setup --global` |
+| **Cursor** | `.cursor/mcp.json` | `git-butler setup --cursor` |
+| **Claude Desktop** | `claude_desktop_config.json` | `git-butler setup --claude` |
+| **Google Antigravity** | `~/.gemini/config/mcp_config.json` | `git-butler setup --antigravity` |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | `git-butler setup --windsurf` |
 
 ---
 
-## 🛠️ CLI Command Reference
+## CLI Command Reference
 
-### 📋 Setup & Environment
+### Setup & Diagnostics
 ```bash
-# Interactive setup wizard
+# Launch interactive configuration wizard
 git-butler setup
 
-# Install universal global config (~/.mcp.json)
+# Install universal global MCP configuration
 git-butler setup --global
 
-# Run diagnostics and auto-repair
+# Run diagnostics and auto-repair broken states
 git-butler doctor --fix
 ```
 
-### 📋 Task Management
+### Task Lifecycle Management
 ```bash
 # Start a new task with an isolated branch and worktree
-git-butler task start "Order Processing Webhook"
+git-butler task start "Payment Gateway Integration"
 
-# Start multiple isolated tasks at once
-git-butler task batch "Order Tracking Page" "Stripe Webhook Integration"
+# Start multiple tasks in parallel with dedicated worktrees
+git-butler task batch "Auth Refactor" "Dashboard UI" "API Rate Limiter"
 
-# List all tracked tasks, statuses, and PR links
+# List tracked tasks with status, branch, and worktree paths
 git-butler task list
 
-# Show detailed metadata for a task
+# Show detailed task metadata and iterations
 git-butler task show <taskId>
 
-# Complete and merge task into target branch, remove worktree, and update status
+# Finish task: merges into target branch, cleans up worktree, and marks COMPLETED
 git-butler task finish <taskIdOrName>
 
-# Finish with custom merge options:
+# Finish with custom target branch, strategy, or branch deletion:
 git-butler task finish <taskIdOrName> --target main --method squash --delete-branch
 
-# Continue an existing task (reopens worktree and increments iteration)
+# Reopen or continue an existing task (restores worktree and increments iteration)
 git-butler task continue <taskIdOrName>
 
-# Close task and clean up temporary worktree directory (preserving feature branch)
+# Close task and remove worktree while preserving branch commits
 git-butler task close <taskIdOrName>
 ```
 
-### 📸 Instant Checkpoints & Fast Recovery
+### Checkpoints & Rollback
 ```bash
-# Create an instant snapshot checkpoint before editing
+# Create an instant snapshot commit before experimental changes
 git-butler checkpoint create "Before Database Migration"
 
 # List saved checkpoints with commit SHAs and branches
 git-butler checkpoint list
 
-# Roll back workspace to a checkpoint commit
+# Roll back workspace to a saved checkpoint
 git-butler checkpoint restore <checkpointId> --force
 ```
 
-### 🧪 Independent Quality Verification Gate
+### Verification & PR Automation
 ```bash
-# Run real test and build gates on task before review
-git-butler verify <taskId> --test "pnpm test" --build "pnpm build" --lint "pnpm lint"
-```
+# Run verification gates (build, test, lint)
+git-butler verify <taskId> --test "pnpm test" --build "pnpm build"
 
-### 🐙 GitHub Pull Requests
-```bash
-# Create a Pull Request linked to task
-git-butler pr create --title "feat: order processing" --body "Implements webhook handling" --task <taskId>
+# Create a Pull Request linked to the active task
+git-butler pr create --title "feat: payment gateway" --body "Implements webhook handling" --task <taskId>
 
-# View PR status and CI check conclusions
+# Inspect PR status and CI conclusions
 git-butler pr status <prNumber>
 
-# Merge PR and update task state
-git-butler pr merge <prNumber> --method squash --task <taskId>
-```
-
-### 🔍 Status & Diff
-```bash
-# View structured Git status
-git-butler status
-
-# View diff statistics and patch preview
-git-butler diff --staged
+# Merge PR using squash/rebase strategy
+git-butler pr merge <prNumber> --method squash
 ```
 
 ---
 
-## 🏗️ Core Architecture
+## Architecture & Monorepo Packages
 
-```text
-┌───────────────────────────────────────────────────────────┐
-│                     AI Coding Agent                       │
-│        (Claude / Cursor / Antigravity / OpenCode)         │
-└─────────────────────────────┬─────────────────────────────┘
-                              │ JSON-RPC (STDIO)
-                              ▼
-┌───────────────────────────────────────────────────────────┐
-│                 Git Butler MCP Server (19 Tools)          │
-└───────────┬─────────────────┬─────────────────┬───────────┘
-            │                 │                 │
-            ▼                 ▼                 ▼
-┌──────────────────┐ ┌──────────────────┐ ┌─────────────────┐
-│ Orchestrator     │ │ Checkpoint Store │ │ Quality Gate    │
-│ • Task Lifecycle │ │ • Snapshot Commits│ │ • Subprocess    │
-│ • Worktree Alloc │ │ • Rollback Engine│ │   Test Runner   │
-└───────────┬──────┘ └────────┬─────────┘ └────────┬────────┘
-            │                 │                    │
-            ▼                 ▼                    ▼
-┌───────────────────────────────────────────────────────────┐
-│                  Native Git & GitHub API                  │
-│       (Porcelain Parsers • Ground Truth • Safe Exec)      │
-└───────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Clients["AI Coding Agents"]
+        Agent["Claude / Cursor / Antigravity / Windsurf / OpenCode"]
+    end
+
+    Agent -->|"STDIO (JSON-RPC)"| MCP["Git Butler MCP Server (21 Tools)"]
+
+    subgraph Subsystems["Core Subsystems"]
+        Orchestrator["Task Orchestrator"]
+        Worktrees["Worktree Manager (Dependency Linking)"]
+        Checkpoints["Checkpoint & Rollback Engine"]
+        Verification["Process Verification Gate"]
+    end
+
+    MCP --> Orchestrator
+    MCP --> Checkpoints
+    MCP --> Verification
+    Orchestrator --> Worktrees
+
+    subgraph Native["Native Git & Filesystem"]
+        Git["Git Porcelain Engine (v2)"]
+        FS["Physical Isolated Worktrees"]
+    end
+
+    Orchestrator --> Git
+    Worktrees --> FS
+    Checkpoints --> Git
+    Verification --> FS
 ```
 
----
-
-## 📦 Monorepo Packages
-
-Git Butler is architected as modular TypeScript packages:
-
-- **[`@git-butler/core`](packages/core)**: Zod schemas, structured errors, and `GitButlerOrchestrator`.
-- **[`@git-butler/git`](packages/git)**: Safe non-shell `GitExecutor`, porcelain parsers, and diagnostic doctor.
-- **[`@git-butler/worktrees`](packages/worktrees)**: Physical worktree allocation, isolation, and pruning.
-- **[`@git-butler/tasks`](packages/tasks)**: Atomic `.ai-git/` persistent store with `.bak` self-healing recovery.
-- **[`@git-butler/checkpoints`](packages/checkpoints)**: Snapshot commit manager and rollback engine.
-- **[`@git-butler/verification`](packages/verification)**: Independent process runner and quality gate engine.
-- **[`@git-butler/permissions`](packages/permissions)**: 4-tier security matrix and protected branch guard.
-- **[`@git-butler/github`](packages/github)**: Pull request, CI checks, and merge automation.
-- **[`@git-butler/mcp`](packages/mcp)**: Model Context Protocol STDIO server exposing 19 tools.
-- **[`@git-butler/adapters`](packages/adapters)**: Tool format converters for Claude and OpenAI Codex.
-- **[`@git-butler/cli`](apps/cli)**: Complete developer command-line interface binary (`git-butler`).
+| Package | Description |
+| :--- | :--- |
+| **`@git-butler/core`** | Core schemas, structured error types, and `GitButlerOrchestrator`. |
+| **`@git-butler/git`** | Safe non-shell `GitExecutor`, porcelain parsers, and doctor diagnostics. |
+| **`@git-butler/worktrees`** | Worktree provisioning, NTFS junction/symlink linking, and pruning. |
+| **`@git-butler/tasks`** | Atomic `.ai-git/` persistent store with `.bak` self-healing recovery. |
+| **`@git-butler/checkpoints`** | Snapshot commit creation and rollback engine. |
+| **`@git-butler/verification`** | Independent subprocess runner and verification gate. |
+| **`@git-butler/permissions`** | 4-tier security matrix and protected branch guard. |
+| **`@git-butler/github`** | Pull request, CI checks, and merge automation. |
+| **`@git-butler/mcp`** | Model Context Protocol STDIO server (21 tools). |
+| **`@git-butler/adapters`** | Tool format translators for Anthropic Claude and OpenAI formats. |
+| **`@rohan7/git-butler`** | Standalone CLI and unified bundle (`apps/cli`). |
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-- 📖 [Architecture & Invariant Rules](docs/ARCHITECTURE.md)
-- 🔌 [MCP Setup Guide](docs/MCP_SETUP.md)
-- 🤖 [Claude Integration Guide](docs/CLAUDE_GUIDE.md)
-- 💻 [Cursor Integration Guide](docs/CURSOR_GUIDE.md)
+- [Architecture & Invariants](docs/ARCHITECTURE.md)
+- [MCP Integration Guide](docs/MCP_SETUP.md)
+- [Claude Desktop Integration](docs/CLAUDE_GUIDE.md)
+- [Cursor IDE Integration](docs/CURSOR_GUIDE.md)
 
 ---
 
-## 📄 License & Commercial Protection
+## License
 
-Git Butler is protected by a **Proprietary & Non-Commercial License**.  
-Free for individual, educational, and internal developer workflow use.  
-**Strictly prohibited:** Selling, reselling, monetizing, or distributing modified commercial versions without explicit written authorization from the authors. See [LICENSE](LICENSE) for full legal terms.
+Git Butler is distributed under a **Proprietary & Non-Commercial License**.  
+Free for individual developer, educational, and internal development workflow use. Commercial resale or redistribution of modified versions without prior authorization is prohibited. See [LICENSE](LICENSE) for details.
