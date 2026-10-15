@@ -1,12 +1,46 @@
-name: Publish to GitHub Packages
+name: Publish Packages
 
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  publish-gpr:
+  publish-npm:
+    name: Publish to npmjs.com
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build monorepo
+        run: pnpm build
+
+      - name: Publish to npmjs.com
+        working-directory: apps/cli
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-github:
+    name: Publish to GitHub Packages
     runs-on: ubuntu-latest
     permissions:
       contents: read
