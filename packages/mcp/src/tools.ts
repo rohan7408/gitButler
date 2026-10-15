@@ -112,7 +112,7 @@ export const TOOLS: McpToolDefinition[] = [
   },
   {
     name: 'task_start',
-    description: 'Start a new task, generating feature branch and allocating an isolated physical worktree.',
+    description: 'Start a new task, generating feature branch and allocating an isolated physical worktree. IMPORTANT: If the user provides multiple features or separate items, do NOT lump them into one task. Call task_start separately for each feature or use task_batch_start.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -122,9 +122,50 @@ export const TOOLS: McpToolDefinition[] = [
         worktreePath: { type: 'string', description: 'Custom worktree path (optional)' },
         agent: { type: 'string', description: 'Agent identifier (optional)' },
         reuseExisting: { type: 'boolean', description: 'Automatically reuse/continue existing task if name matches' },
+        linkDependencies: { type: 'boolean', description: 'Automatically link node_modules and .env files into worktree (default: true)' },
         path: { type: 'string', description: 'Target repository root path' },
       },
       required: ['name'],
+    },
+  },
+  {
+    name: 'task_batch_start',
+    description: 'Start multiple tasks in parallel, creating distinct isolated worktrees and feature branches for each task.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tasks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Task name' },
+              description: { type: 'string', description: 'Task description' },
+              branch: { type: 'string', description: 'Optional custom branch name' },
+            },
+            required: ['name'],
+          },
+          description: 'Array of tasks to create',
+        },
+        path: { type: 'string', description: 'Target repository root path' },
+      },
+      required: ['tasks'],
+    },
+  },
+  {
+    name: 'task_finish',
+    description: 'Finish and complete a task: merges its feature branch into target branch (default main), removes the worktree folder, and marks task COMPLETED.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        queryOrId: { type: 'string', description: 'Task ID or name to finish' },
+        targetBranch: { type: 'string', description: 'Branch to merge into (default: "main")' },
+        method: { type: 'string', enum: ['squash', 'merge', 'rebase'], description: 'Merge strategy (default: squash)' },
+        deleteBranch: { type: 'boolean', description: 'Delete feature branch after merge (default: false)' },
+        commitMessage: { type: 'string', description: 'Optional custom merge commit message' },
+        path: { type: 'string', description: 'Target repository root path' },
+      },
+      required: ['queryOrId'],
     },
   },
   {

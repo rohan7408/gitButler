@@ -157,4 +157,50 @@ describe('GitButlerOrchestrator Integration Tests', () => {
     expect(active.map((a) => a.task.name)).toContain('Task A');
     expect(active.map((a) => a.task.name)).toContain('Task B');
   });
+
+  it('batch starts multiple tasks in parallel with isolated worktrees', async () => {
+    const tasks = [
+      { name: 'Batch Task 1', description: 'First batch task' },
+      { name: 'Batch Task 2', description: 'Second batch task' },
+    ];
+
+    const results = await orchestrator.batchStartTasks(tasks, mainRepoDir);
+    expect(results).toHaveLength(2);
+    expect(results[0].task.name).toBe('Batch Task 1');
+    expect(results[1].task.name).toBe('Batch Task 2');
+    expect(fs.existsSync(results[0].worktreePath)).toBe(true);
+    expect(fs.existsSync(results[1].worktreePath)).toBe(true);
+    expect(results[0].worktreePath).not.toBe(results[1].worktreePath);
+
+    // Clean up
+    await orchestrator.closeTask(results[0].task.id, { force: true }, mainRepoDir);
+    await orchestrator.closeTask(results[1].task.id, { force: true }, mainRepoDir);
+  });
+
+  it('finishes a task by merging into target branch and removing worktree', async () => {
+    const wtPath = path.join(worktreeBaseDir, 'feature-finish');
+    const startResult = await orchestrator.startTask(
+      { name: 'Finish Feature', worktreePath: wtPath },
+      mainRepoDir
+    );
+
+    // Write code in worktree and commit
+    fs.writeFileSync(path.join(wtPath, 'feature.txt'), 'Feature implementation\n');
+    await git.add('feature.txt', wtPath);
+    await git.commit('feat: implement finish feature', {}, wtPath);
+
+    // Finish task
+    const finished = await orchestrator.finishTask(
+      startResult.task.id,
+      { targetBranch: 'main', method: 'squash' },
+      mainRepoDir
+    );
+
+    expect(finished.status).toBe('COMPLETED');
+    expect(fs.existsSync(wtPath)).toBe(false);
+
+    // Verify main repo now contains the merged file
+    expect(fs.existsSync(path.join(mainRepoDir, 'feature.txt'))).toBe(true);
+    expect(fs.readFileSync(path.join(mainRepoDir, 'feature.txt'), 'utf-8').trim()).toBe('Feature implementation');
+  });
 });

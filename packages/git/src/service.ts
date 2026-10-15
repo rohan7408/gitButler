@@ -194,6 +194,36 @@ export class GitService {
     await this.executor.exec(args, { cwd });
   }
 
+  public async merge(
+    branchOrRef: string,
+    options?: { method?: 'merge' | 'squash' | 'rebase'; message?: string },
+    cwd?: string
+  ): Promise<void> {
+    const method = options?.method ?? 'squash';
+
+    if (method === 'rebase') {
+      await this.executor.exec(['rebase', branchOrRef], { cwd });
+      return;
+    }
+
+    const args = ['merge'];
+    if (method === 'squash') {
+      args.push('--squash');
+    } else {
+      args.push('--no-edit');
+      if (options?.message) {
+        args.push('-m', options.message);
+      }
+    }
+    args.push(branchOrRef);
+    await this.executor.exec(args, { cwd });
+
+    if (method === 'squash') {
+      const commitMsg = options?.message || `feat: merge ${branchOrRef}`;
+      await this.executor.exec(['commit', '-m', commitMsg], { cwd });
+    }
+  }
+
   public async unlockIndex(cwd?: string): Promise<boolean> {
     try {
       const gitDirRes = await this.executor.exec(['rev-parse', '--git-dir'], { cwd });

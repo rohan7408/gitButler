@@ -102,6 +102,7 @@ export const WorktreeCreateOptionsSchema = z.object({
   newBranch: z.string().optional(),
   startPoint: z.string().optional(),
   detach: z.boolean().optional(),
+  linkDependencies: z.boolean().optional(),
 });
 export type WorktreeCreateOptions = z.infer<typeof WorktreeCreateOptionsSchema>;
 
@@ -206,6 +207,7 @@ export const StartTaskOptionsSchema = z.object({
   worktreePath: z.string().optional(),
   agent: z.string().optional(),
   reuseExisting: z.boolean().optional(),
+  linkDependencies: z.boolean().optional(),
   context: z.record(z.unknown()).optional(),
 });
 export type StartTaskOptions = z.infer<typeof StartTaskOptionsSchema>;
@@ -215,6 +217,29 @@ export const CloseTaskOptionsSchema = z.object({
   force: z.boolean().optional(),
 });
 export type CloseTaskOptions = z.infer<typeof CloseTaskOptionsSchema>;
+
+export const FinishTaskOptionsSchema = z.object({
+  targetBranch: z.string().optional().default('main'),
+  method: z.enum(['merge', 'squash', 'rebase']).optional().default('squash'),
+  deleteBranch: z.boolean().optional().default(false),
+  skipVerification: z.boolean().optional().default(false),
+  commitMessage: z.string().optional(),
+  force: z.boolean().optional().default(false),
+});
+export type FinishTaskOptions = z.input<typeof FinishTaskOptionsSchema>;
+
+export const BatchStartTaskItemSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  branch: z.string().optional(),
+});
+export type BatchStartTaskItem = z.infer<typeof BatchStartTaskItemSchema>;
+
+export const BatchStartTaskOptionsSchema = z.object({
+  tasks: z.array(BatchStartTaskItemSchema),
+  linkDependencies: z.boolean().default(true),
+});
+export type BatchStartTaskOptions = z.infer<typeof BatchStartTaskOptionsSchema>;
 
 // Verification Types
 export const VerificationStatusSchema = z.enum([

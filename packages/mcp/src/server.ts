@@ -190,6 +190,38 @@ export class GitButlerMcpServer {
           break;
         }
 
+        case 'task_batch_start': {
+          this.permissionGuard.assertAllowed('orchestrator:start_task', this.permissionPolicy);
+          const tasks = (args.tasks as any[]) || [];
+          resultData = await this.orchestrator.batchStartTasks(
+            tasks.map((t) => ({
+              name: t.name,
+              description: t.description,
+              branch: t.branch,
+              linkDependencies: true,
+            })),
+            targetCwd
+          );
+          break;
+        }
+
+        case 'task_finish': {
+          this.permissionGuard.assertAllowed('orchestrator:close_task', this.permissionPolicy);
+          resultData = await this.orchestrator.finishTask(
+            args.queryOrId as string,
+            {
+              targetBranch: (args.targetBranch as string) || undefined,
+              method: (args.method as any) || 'squash',
+              deleteBranch: Boolean(args.deleteBranch),
+              skipVerification: Boolean(args.skipVerification),
+              commitMessage: args.commitMessage as string | undefined,
+              force: Boolean(args.force),
+            },
+            targetCwd
+          );
+          break;
+        }
+
         case 'task_close': {
           this.permissionGuard.assertAllowed('orchestrator:close_task', this.permissionPolicy);
           resultData = await this.orchestrator.closeTask(

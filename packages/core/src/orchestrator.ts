@@ -6,6 +6,7 @@ import {
   type OrchestratedTask,
   type StartTaskOptions,
   type CloseTaskOptions,
+  type FinishTaskOptions,
   type WorktreeInfo,
   type WorktreeCreateOptions,
   type WorktreeRemoveOptions,
@@ -40,6 +41,9 @@ export interface IGitService {
   branchCurrent(cwd?: string): Promise<string>;
   branchCreate(name: string, startPoint?: string, cwd?: string): Promise<void>;
   revParse(ref: string, cwd?: string): Promise<string>;
+  checkout?(branch: string, options?: any, cwd?: string): Promise<void>;
+  merge?(branch: string, options?: { method?: 'merge' | 'squash' | 'rebase'; message?: string }, cwd?: string): Promise<void>;
+  branchDelete?(name: string, force?: boolean, cwd?: string): Promise<void>;
 }
 
 export function slugify(text: string): string {
@@ -192,6 +196,103 @@ export class GitButlerOrchestrator {
 
     const completed = this.taskManager.complete(task.id, root);
     return completed;
+  }
+
+  public async finishTask(
+    queryOrId: string,
+    options?: FinishTaskOptions,
+    repoRoot: string = process.cwd()
+  ): Promise<Task> {
+    const root = path.resolve(repoRoot);
+
+    let task = this.taskManager.get(queryOrId, root);
+    if (!task) {
+      task = this.taskManager.findOne(queryOrId, root);
+    }
+
+    if (!task) {
+      throw new GitButlerError(`Task not found: "${queryOrId}"`, 'TASK_NOT_FOUND', { queryOrId });
+    }
+
+    let targetBranch = options?.targetBranch;
+    if (!targetBranch) {
+      if (this.gitService.branchExists) {
+        const hasMain = await this.gitService.branchExists('main', root);
+        if (hasMain) {
+          targetBranch = 'main';
+        } else {
+          const hasMaster = await this.gitService.branchExists('master', root);
+          targetBranch = hasMaster ? 'master' : (await this.gitService.branchCurrent(root));
+        }
+      } else {
+        targetBranch = 'main';
+      }
+    }
+    const method = options?.method ?? 'squash';
+    const deleteBranch = options?.deleteBranch ?? false;
+
+    // Safety check: ensure worktree has no uncommitted changes unless force is passed
+    if (task.worktreePath && !options?.force) {
+      try {
+        const wtStatus = await this.worktreeManager.status(task.worktreePath);
+        if (!wtStatus.isClean) {
+          throw new GitButlerError(
+            `Task worktree contains uncommitted or untracked changes (${wtStatus.files.length} files). Please commit your changes or pass force: true.`,
+            'WORKTREE_DIRTY',
+            { path: task.worktreePath, files: wtStatus.files }
+          );
+        }
+      } catch (err) {
+        if (err instanceof GitButlerError && err.code === 'WORKTREE_DIRTY') {
+          throw err;
+        }
+      }
+    }
+
+    // 1. Switch to target branch in root repository if not already on it
+    const currentBranch = await this.gitService.branchCurrent(root);
+    if (currentBranch !== targetBranch && this.gitService.checkout) {
+      await this.gitService.checkout(targetBranch, undefined, root);
+    }
+
+    // 2. Merge task branch into target branch
+    if (this.gitService.merge) {
+      const commitMsg = options?.commitMessage || `feat: complete ${task.name} (${task.branch})`;
+      await this.gitService.merge(task.branch, { method, message: commitMsg }, root);
+    }
+
+    // 3. Remove physical worktree directory
+    if (task.worktreePath) {
+      const wt = await this.worktreeManager.get(task.worktreePath, root);
+      if (wt) {
+        await this.worktreeManager.remove(task.worktreePath, { force: true }, root);
+      }
+    }
+
+    // 4. Optionally delete the feature branch
+    if (deleteBranch && this.gitService.branchDelete) {
+      try {
+        await this.gitService.branchDelete(task.branch, true, root);
+      } catch {
+        // Non-critical
+      }
+    }
+
+    // 5. Update task state
+    const completed = this.taskManager.update(task.id, { status: 'COMPLETED' }, root);
+    return completed;
+  }
+
+  public async batchStartTasks(
+    tasks: StartTaskOptions[],
+    repoRoot: string = process.cwd()
+  ): Promise<OrchestratedTask[]> {
+    const results: OrchestratedTask[] = [];
+    for (const t of tasks) {
+      const res = await this.startTask(t, repoRoot);
+      results.push(res);
+    }
+    return results;
   }
 
   public async getActiveTasks(repoRoot: string = process.cwd()): Promise<OrchestratedTask[]> {

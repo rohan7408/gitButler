@@ -170,5 +170,61 @@ export function createTaskCommand(): Command {
       }
     });
 
+  task
+    .command('finish <queryOrId>')
+    .description('Complete a task by merging into target branch, removing worktree, and updating status')
+    .option('-t, --target <branch>', 'Target branch to merge into (auto-detects main/master by default)')
+    .option('-m, --method <method>', 'Merge method (squash, merge, rebase)', 'squash')
+    .option('-d, --delete-branch', 'Delete feature branch after merge', false)
+    .option('--message <msg>', 'Custom merge commit message')
+    .option('-C <path>', 'Repository root directory', process.cwd())
+    .action(async (queryOrId, options) => {
+      try {
+        const result = await orchestrator.finishTask(
+          queryOrId,
+          {
+            targetBranch: options.target,
+            method: options.method as any,
+            deleteBranch: Boolean(options.deleteBranch),
+            commitMessage: options.message,
+          },
+          options.C
+        );
+
+        console.log(pc.green(pc.bold(`\n✓ Task finished and merged: "${result.name}"`)));
+        console.log(`  ID:     ${pc.cyan(result.id)}`);
+        console.log(`  Merged: ${pc.yellow(result.branch)} -> ${pc.bold(options.target)}`);
+        console.log(`  Status: ${pc.green(result.status)}`);
+        console.log();
+      } catch (err: any) {
+        console.error(pc.red(`\n✗ Failed to finish task: ${err.message}\n`));
+        process.exitCode = 1;
+      }
+    });
+
+  task
+    .command('batch <names...>')
+    .description('Start multiple tasks at once with separate isolated worktrees')
+    .option('-C <path>', 'Repository root directory', process.cwd())
+    .action(async (names, options) => {
+      try {
+        const results = await orchestrator.batchStartTasks(
+          names.map((n: string) => ({ name: n, linkDependencies: true })),
+          options.C
+        );
+
+        console.log(pc.green(pc.bold(`\n✓ Started ${results.length} isolated tasks:\n`)));
+        for (const r of results) {
+          console.log(` • ${pc.bold(r.task.name)} (${pc.cyan(r.task.id)})`);
+          console.log(`   Branch:   ${pc.yellow(r.branch)}`);
+          console.log(`   Worktree: ${pc.dim(r.worktreePath)}\n`);
+        }
+      } catch (err: any) {
+        console.error(pc.red(`\n✗ Failed to batch start tasks: ${err.message}\n`));
+        process.exitCode = 1;
+      }
+    });
+
   return task;
 }
+

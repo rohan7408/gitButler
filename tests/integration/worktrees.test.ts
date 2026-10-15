@@ -175,4 +175,22 @@ describe('WorktreeManager Integration Tests', () => {
     await worktreeManager.remove(wtPath, {}, mainRepoDir);
     expect(fs.existsSync(wtPath)).toBe(false);
   });
+
+  it('automatically links node_modules and copies .env files to new worktree', async () => {
+    // Setup node_modules and .env in main repo
+    const fakeNodeModules = path.join(mainRepoDir, 'node_modules');
+    fs.mkdirSync(fakeNodeModules, { recursive: true });
+    fs.writeFileSync(path.join(fakeNodeModules, 'test-package.json'), '{}');
+
+    const envFile = path.join(mainRepoDir, '.env.local');
+    fs.writeFileSync(envFile, 'API_KEY=test-secret\n');
+
+    const wtPath = path.join(worktreeBaseDir, 'deps-wt');
+    await worktreeManager.create({ path: wtPath, newBranch: 'feature/deps' }, mainRepoDir);
+
+    expect(fs.existsSync(path.join(wtPath, 'node_modules'))).toBe(true);
+    expect(fs.existsSync(path.join(wtPath, 'node_modules', 'test-package.json'))).toBe(true);
+    expect(fs.existsSync(path.join(wtPath, '.env.local'))).toBe(true);
+    expect(fs.readFileSync(path.join(wtPath, '.env.local'), 'utf-8')).toBe('API_KEY=test-secret\n');
+  });
 });

@@ -6,6 +6,7 @@ import { createCheckpointCommand } from './commands/checkpoint.js';
 import { createVerifyCommand } from './commands/verify.js';
 import { createPrCommand } from './commands/pr.js';
 import { createStatusCommand, createDiffCommand } from './commands/status.js';
+import { createSetupCommand } from './commands/setup.js';
 import { GitButlerMcpServer } from '@git-butler/mcp';
 
 export function createProgram(): Command {
@@ -38,6 +39,7 @@ export function createProgram(): Command {
   program.addCommand(createPrCommand());
   program.addCommand(createStatusCommand());
   program.addCommand(createDiffCommand());
+  program.addCommand(createSetupCommand());
 
   program
     .command('mcp')
@@ -57,3 +59,4 @@ export * from './commands/checkpoint.js';
 export * from './commands/verify.js';
 export * from './commands/pr.js';
 export * from './commands/status.js';
+export * from './commands/setup.js';

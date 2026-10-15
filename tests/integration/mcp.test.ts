@@ -201,4 +201,48 @@ describe('GitButlerMcpServer Integration Tests', () => {
     expect(taskRes.isError).toBe(true);
     expect(taskRes.content[0].text).toContain('Task not found');
   });
+
+  it('Test 7 — executes task_batch_start and task_finish over MCP', async () => {
+    // 1. task_batch_start
+    const batchRes = await mcpServer.callTool('task_batch_start', {
+      tasks: [
+        { name: 'Feature A', description: 'Description A' },
+        { name: 'Feature B', description: 'Description B' },
+      ],
+      path: tempRepoDir,
+    });
+    expect(batchRes.isError).toBeFalsy();
+    const batchData = JSON.parse(batchRes.content[0].text);
+    expect(batchData).toHaveLength(2);
+    expect(batchData[0].task.name).toBe('Feature A');
+    expect(batchData[1].task.name).toBe('Feature B');
+
+    // Write a file in Feature A's worktree and commit
+    const wtA = batchData[0].worktreePath;
+    fs.writeFileSync(path.join(wtA, 'featureA.txt'), 'Feature A complete\n');
+    await git.add('featureA.txt', wtA);
+    await git.commit('feat: finish feature A', {}, wtA);
+
+    // 2. task_finish
+    const finishRes = await mcpServer.callTool('task_finish', {
+      queryOrId: batchData[0].task.id,
+      targetBranch: 'main',
+      method: 'squash',
+      path: tempRepoDir,
+    });
+    expect(finishRes.isError).toBeFalsy();
+    const finishData = JSON.parse(finishRes.content[0].text);
+    expect(finishData.status).toBe('COMPLETED');
+    expect(fs.existsSync(wtA)).toBe(false);
+
+    // Main repo should now have featureA.txt
+    expect(fs.existsSync(path.join(tempRepoDir, 'featureA.txt'))).toBe(true);
+
+    // Clean up Feature B
+    await mcpServer.callTool('task_close', {
+      queryOrId: batchData[1].task.id,
+      force: true,
+      path: tempRepoDir,
+    });
+  });
 });

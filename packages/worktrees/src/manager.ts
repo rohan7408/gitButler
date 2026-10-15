@@ -10,6 +10,49 @@ import {
 import { GitExecutor, GitService, defaultGitExecutor, defaultGitService } from '@git-butler/git';
 import { parseWorktreeListPorcelain } from './parser.js';
 
+export function normalizePath(p: string): string {
+  const resolved = path.resolve(p);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+export function linkWorktreeDependencies(repoRoot: string, worktreePath: string): void {
+  const rootDir = path.resolve(repoRoot);
+  const wtDir = path.resolve(worktreePath);
+
+  // 1. Link node_modules if present in root and missing in worktree
+  const rootNodeModules = path.join(rootDir, 'node_modules');
+  const wtNodeModules = path.join(wtDir, 'node_modules');
+
+  if (fs.existsSync(rootNodeModules) && !fs.existsSync(wtNodeModules)) {
+    try {
+      const isWindows = process.platform === 'win32';
+      fs.symlinkSync(rootNodeModules, wtNodeModules, isWindows ? 'junction' : 'dir');
+    } catch {
+      // Non-critical if filesystem doesn't allow symlink/junction
+    }
+  }
+
+  // 2. Link or copy .env* files
+  try {
+    const entries = fs.readdirSync(rootDir);
+    for (const entry of entries) {
+      if (entry.startsWith('.env')) {
+        const srcEnv = path.join(rootDir, entry);
+        const destEnv = path.join(wtDir, entry);
+        if (!fs.existsSync(destEnv) && fs.statSync(srcEnv).isFile()) {
+          try {
+            fs.copyFileSync(srcEnv, destEnv);
+          } catch {
+            // Non-critical
+          }
+        }
+      }
+    }
+  } catch {
+    // Non-critical
+  }
+}
+
 export class WorktreeManager {
   constructor(
     private readonly gitService: GitService = defaultGitService,
@@ -22,9 +65,9 @@ export class WorktreeManager {
   }
 
   public async get(worktreePath: string, cwd?: string): Promise<WorktreeInfo | null> {
-    const target = path.resolve(worktreePath);
+    const target = normalizePath(worktreePath);
     const worktrees = await this.list(cwd);
-    return worktrees.find((w) => path.resolve(w.path) === target) ?? null;
+    return worktrees.find((w) => normalizePath(w.path) === target) ?? null;
   }
 
   public async create(options: WorktreeCreateOptions, cwd?: string): Promise<WorktreeInfo> {
@@ -64,6 +107,10 @@ export class WorktreeManager {
         'INTERNAL_ERROR',
         { path: targetPath }
       );
+    }
+
+    if (options.linkDependencies !== false) {
+      linkWorktreeDependencies(cwd ?? process.cwd(), created.path);
     }
 
     return created;
